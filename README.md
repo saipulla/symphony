@@ -1,3 +1,8 @@
+# Disclaimer
+This is a fork of [OAI Symphony](https://github.com/openai/symphony/tree/main). 
+This repo is just for fun. 
+You are encorouged to follow that repo's liscense and use it at your own risk. 
+
 # Symphony
 
 Symphony turns project work into isolated, autonomous implementation runs, allowing teams to manage
