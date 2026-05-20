@@ -107,6 +107,39 @@ You are working on a Linear issue {{ issue.identifier }}.
 Title: {{ issue.title }} Body: {{ issue.description }}
 ```
 
+### GitHub Projects (v2) tracker
+
+To use a GitHub Projects board instead of Linear, set `tracker.kind` to
+`github_projects` and provide the project URL plus a Personal Access Token (PAT)
+with `project`, `repo`, and `read:org` scopes:
+
+```yaml
+tracker:
+  kind: github_projects
+  api_key: $GITHUB_TOKEN
+  project_url: https://github.com/orgs/your-org/projects/3
+  # Optional: name of the single-select field used as state. Defaults to "Status".
+  status_field_name: Status
+  # Optional: filter to issues assigned to a specific login (or "me").
+  assignee: your-github-handle
+  active_states: ["Todo", "In Progress"]
+  terminal_states: ["Done", "Closed", "Cancelled"]
+```
+
+Notes:
+
+- `project_url` accepts both `https://github.com/orgs/<login>/projects/<n>` and
+  `https://github.com/users/<login>/projects/<n>`.
+- Project items are filtered client-side against `active_states` / `terminal_states`
+  using the issue's current value in the configured single-select field
+  (default `Status`, configurable via `status_field_name`).
+- Symphony's tracker endpoint defaults to `https://api.github.com/graphql` when
+  `tracker.kind` is `github_projects`. Override it via `tracker.endpoint` for
+  GitHub Enterprise Server installations.
+- Issue mutations (`update_issue_state`, `create_comment`) require the cache
+  warmed during a recent poll. The Symphony orchestrator polls automatically; if
+  you call mutations directly, run a poll first.
+
 Notes:
 
 - If a value is missing, defaults are used.
@@ -128,6 +161,9 @@ Notes:
 - If a hook needs `mise exec` inside a freshly cloned workspace, trust the repo config and fetch
   the project dependencies in `hooks.after_create` before invoking `mise` later from other hooks.
 - `tracker.api_key` reads from `LINEAR_API_KEY` when unset or when value is `$LINEAR_API_KEY`.
+  For `tracker.kind: github_projects`, it reads from `GITHUB_TOKEN` (and falls back to
+  `GITHUB_PAT`) instead. `tracker.project_url` falls back to `GITHUB_PROJECT_URL`, and
+  `tracker.assignee` falls back to `GITHUB_ASSIGNEE`.
 - For path values, `~` is expanded to the home directory.
 - For env-backed path values, use `$VAR`. `workspace.root` resolves `$VAR` before path handling,
   while `codex.command` stays a shell command string and any `$VAR` expansion there happens in the
