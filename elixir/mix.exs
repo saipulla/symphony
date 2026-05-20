@@ -15,6 +15,8 @@ defmodule SymphonyElixir.MixProject do
         ignore_modules: [
           SymphonyElixir.Config,
           SymphonyElixir.Linear.Client,
+          SymphonyElixir.GithubProjects.Client,
+          SymphonyElixir.GithubProjects.Cache,
           SymphonyElixir.SpecsCheck,
           SymphonyElixir.Orchestrator,
           SymphonyElixir.Orchestrator.State,

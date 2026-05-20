@@ -119,7 +119,7 @@ defmodule SymphonyElixir.Config do
       is_nil(settings.tracker.kind) ->
         {:error, :missing_tracker_kind}
 
-      settings.tracker.kind not in ["linear", "memory"] ->
+      settings.tracker.kind not in ["linear", "memory", "github_projects"] ->
         {:error, {:unsupported_tracker_kind, settings.tracker.kind}}
 
       settings.tracker.kind == "linear" and not is_binary(settings.tracker.api_key) ->
@@ -127,6 +127,12 @@ defmodule SymphonyElixir.Config do
 
       settings.tracker.kind == "linear" and not is_binary(settings.tracker.project_slug) ->
         {:error, :missing_linear_project_slug}
+
+      settings.tracker.kind == "github_projects" and not is_binary(settings.tracker.api_key) ->
+        {:error, :missing_github_api_token}
+
+      settings.tracker.kind == "github_projects" and not is_binary(settings.tracker.project_url) ->
+        {:error, :missing_github_project_url}
 
       true ->
         :ok

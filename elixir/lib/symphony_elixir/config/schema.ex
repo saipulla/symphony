@@ -46,9 +46,11 @@ defmodule SymphonyElixir.Config.Schema do
 
     embedded_schema do
       field(:kind, :string)
-      field(:endpoint, :string, default: "https://api.linear.app/graphql")
+      field(:endpoint, :string)
       field(:api_key, :string)
       field(:project_slug, :string)
+      field(:project_url, :string)
+      field(:status_field_name, :string, default: "Status")
       field(:assignee, :string)
       field(:active_states, {:array, :string}, default: ["Todo", "In Progress"])
       field(:terminal_states, {:array, :string}, default: ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"])
@@ -59,7 +61,7 @@ defmodule SymphonyElixir.Config.Schema do
       schema
       |> cast(
         attrs,
-        [:kind, :endpoint, :api_key, :project_slug, :assignee, :active_states, :terminal_states],
+        [:kind, :endpoint, :api_key, :project_slug, :project_url, :status_field_name, :assignee, :active_states, :terminal_states],
         empty_values: []
       )
     end
@@ -368,8 +370,10 @@ defmodule SymphonyElixir.Config.Schema do
   defp finalize_settings(settings) do
     tracker = %{
       settings.tracker
-      | api_key: resolve_secret_setting(settings.tracker.api_key, System.get_env("LINEAR_API_KEY")),
-        assignee: resolve_secret_setting(settings.tracker.assignee, System.get_env("LINEAR_ASSIGNEE"))
+      | api_key: resolve_tracker_api_key(settings.tracker),
+        assignee: resolve_tracker_assignee(settings.tracker),
+        project_url: resolve_secret_setting(settings.tracker.project_url, System.get_env("GITHUB_PROJECT_URL")),
+        endpoint: resolve_tracker_endpoint(settings.tracker)
     }
 
     workspace = %{
@@ -421,6 +425,33 @@ defmodule SymphonyElixir.Config.Schema do
       resolved -> resolved
     end
   end
+
+  defp resolve_tracker_api_key(%{kind: "github_projects"} = tracker) do
+    fallback = System.get_env("GITHUB_TOKEN") || System.get_env("GITHUB_PAT")
+    resolve_secret_setting(tracker.api_key, fallback)
+  end
+
+  defp resolve_tracker_api_key(tracker) do
+    resolve_secret_setting(tracker.api_key, System.get_env("LINEAR_API_KEY"))
+  end
+
+  defp resolve_tracker_assignee(%{kind: "github_projects"} = tracker) do
+    resolve_secret_setting(tracker.assignee, System.get_env("GITHUB_ASSIGNEE"))
+  end
+
+  defp resolve_tracker_assignee(tracker) do
+    resolve_secret_setting(tracker.assignee, System.get_env("LINEAR_ASSIGNEE"))
+  end
+
+  defp resolve_tracker_endpoint(%{endpoint: endpoint}) when is_binary(endpoint) and endpoint != "" do
+    case resolve_env_value(endpoint, nil) do
+      resolved when is_binary(resolved) -> resolved
+      _ -> endpoint
+    end
+  end
+
+  defp resolve_tracker_endpoint(%{kind: "github_projects"}), do: "https://api.github.com/graphql"
+  defp resolve_tracker_endpoint(_tracker), do: "https://api.linear.app/graphql"
 
   defp resolve_path_value(value, default) when is_binary(value) do
     case normalize_path_token(value) do
